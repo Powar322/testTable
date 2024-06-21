@@ -4,23 +4,23 @@
       <a-date-picker
         v-if="column.key === 'DateDo'"
         :value="dayjs(record[column.dataIndex])"
-        @change="(value: Dayjs) => editDo(record.key, value)"
+        @change="(value: Dayjs) => editCol(record.key, value, column.dataIndex)"
       />
 
       <a-date-picker
         v-if="column.key === 'DateArivInPTO'"
         :value="dayjs(record[column.dataIndex])"
         :disabled="record.loading"
-        @change="(value: Dayjs) => editArriv(record.key, value)"
+        @change="(value: Dayjs) => editCol(record.key, value, column.dataIndex)"
       />
       <a-select
         v-if="column.key === 'ManOVED'"
         ref="select"
-        v-model:value="record[column.dataIndex]"
+        :value="record[column.dataIndex]"
         style="width: 10vw"
         :disabled="record.loading"
         @focus="focus"
-        @change="edit(record.key, record[column.dataIndex]), load(record.key)"
+        @change="(value: string) => editCol(record.key, value, column.dataIndex)"
       >
         <a-select-option v-for="manag in managers" :value="manag.manager">{{
           manag.manager
@@ -29,11 +29,11 @@
       <a-select
         v-if="column.key === 'Declar'"
         ref="select"
-        v-model:value="record[column.dataIndex]"
+        :value="record[column.dataIndex]"
         style="width: 10vw"
         :disabled="record.loading"
         @focus="focus"
-        @change="edit(record.key, record[column.dataIndex]), load(record.key)"
+        @change="(value: string) => editCol(record.key, value, column.dataIndex)"
       >
         <a-select-option v-for="declarant in Declarants" :value="declarant.declarant">{{
           declarant.declarant
@@ -45,39 +45,37 @@
         <template #bodyCell="{ column, record }">
           <a-checkbox
             v-if="column.key === 'morfRaht'"
-            v-model:checked="record[column.dataIndex]"
-            :change="edit2(record.key, record[column.dataIndex])"
+            :checked="Boolean(record[column.dataIndex])"
+            @change="(checked: Boolean) => edit2(record.key, checked, column.dataIndex)"
           />
           <a-checkbox
             v-if="column.key === 'insuranse'"
             v-model:checked="record[column.dataIndex]"
-            :change="edit2(record.key, record[column.dataIndex])"
           />
           <a-checkbox
             v-if="column.key === 'TOPayment'"
             v-model:checked="record[column.dataIndex]"
-            :change="edit2(record.key, record[column.dataIndex])"
           />
           <a-input-number
             v-if="column.key === 'literT'"
-            v-model:value="record[column.dataIndex]"
+            :value="record[column.dataIndex]"
             :min="0"
             :controls="false"
-            :change="edit2(record.key, record[column.dataIndex])"
+            @change="(value: number) => edit2(record.key, value, column.dataIndex)"
           />
           <a-input-number
             v-if="column.key === 'literN'"
-            v-model:value="record[column.dataIndex]"
+            :value="record[column.dataIndex]"
             :min="0"
             :controls="false"
-            :change="edit2(record.key, record[column.dataIndex])"
+            @change="(value: number) => edit2(record.key, value, column.dataIndex)"
           />
           <a-input-number
             v-if="column.key === 'literD'"
-            v-model:value="record[column.dataIndex]"
+            :value="record[column.dataIndex]"
             :min="0"
             :controls="false"
-            :change="edit2(record.key, record[column.dataIndex])"
+            @change="(value: number) => edit2(record.key, value, column.dataIndex)"
           />
         </template>
       </a-table>
@@ -86,12 +84,12 @@
       <span style="color: red">More</span>
     </template>
   </a-table>
+  <a-button @click="importData()">get new data</a-button>
 </template>
 <script lang="ts" setup>
-import { ref, reactive } from 'vue'
-import type { Ref, UnwrapRef } from 'vue'
+import { ref } from 'vue'
+import type { Ref } from 'vue'
 import dayjs, { Dayjs, type ConfigType } from 'dayjs'
-import { cloneDeep } from 'lodash-es'
 interface DataItem {
   key: number
   client: string
@@ -113,8 +111,6 @@ interface DataItem {
     }
   ]
 }
-const editableData: UnwrapRef<Record<string, DataItem>> = reactive({})
-
 const managers = ref([{ manager: 'Какой-то менеджер' }, { manager: 'Крутой менеджер' }])
 const Declarants = ref([{ declarant: 'Декларант123' }, { declarant: 'НЕдлекра321' }])
 
@@ -136,97 +132,73 @@ const innerColumns = [
   { title: 'Д', dataIndex: 'literD', key: 'literD' }
 ]
 
-//const data = ref([
-//  {
-//    key: 0,
-//    client: `АЭРО-ТРЕЙД ООО`,
-//    KTK: 'OOCU7811227',
-//    spec: '10.3.4.5654',
-//    DateDo: ref<Dayjs>(dayjs('2024-05-06')),
-//    DateArivInPTO: ref<Dayjs>(dayjs('2022-05-06')),
-//    ManOVED: 'Елецких Мария',
-//    Declar: 'Декларант 1',
-//    innerData: [
-//      {
-//        key: 11,
-//        morfRaht: false,
-//        insuranse: false,
-//        TOPayment: false,
-//        literT: 0,
-//        literN: 0,
-//        literD: 0
-//      }
-//    ]
-//  },
-//  {
-//    key: 1,
-//    client: `АЭРО-ТРЕЙД ООО`,
-//    KTK: 'TRHU4300411',
-//    spec: '10.3.4.5654',
-//    DateDo: ref<Dayjs>(dayjs('2024-05-06')),
-//    DateArivInPTO: ref<Dayjs>(dayjs('2022-05-06')),
-//    ManOVED: 'Елецких Мария',
-//    Declar: 'Декларант 2',
-//    innerData: [
-//      {
-//        key: 11,
-//        morfRaht: false,
-//        insuranse: false,
-//        TOPayment: false,
-//        literT: 0,
-//        literN: 0,
-//        literD: 0
-//      }
-//    ]
-//  }
-//])
-//localStorage.setItem('dannye', JSON.stringify(data.value))
+const dataImp = ref([
+  {
+    key: 0,
+    client: `АЭРО-ТРЕЙД ООО`,
+    KTK: 'OOCU7811227',
+    spec: '10.3.4.5654',
+    DateDo: ref<Dayjs>(dayjs('2024-05-06')),
+    DateArivInPTO: ref<Dayjs>(dayjs('2022-05-06')),
+    ManOVED: 'Елецких Мария',
+    Declar: 'Декларант 1',
+    innerData: [
+      {
+        key: 11,
+        morfRaht: false,
+        insuranse: false,
+        TOPayment: false,
+        literT: 0,
+        literN: 0,
+        literD: 0
+      }
+    ]
+  },
+  {
+    key: 1,
+    client: `АЭРО-ТРЕЙД ООО`,
+    KTK: 'TRHU4300411',
+    spec: '10.3.4.5654',
+    DateDo: ref<Dayjs>(dayjs('2024-05-06')),
+    DateArivInPTO: ref<Dayjs>(dayjs('2022-05-06')),
+    ManOVED: 'Елецких Мария',
+    Declar: 'Декларант 2',
+    innerData: [
+      {
+        key: 22,
+        morfRaht: false,
+        insuranse: false,
+        TOPayment: false,
+        literT: 0,
+        literN: 0,
+        literD: 0
+      }
+    ]
+  }
+])
 const data = ref(JSON.parse(localStorage.getItem('dannye') || '{}'))
-function editDo(key: number, it: any) {
-  editableData[key] = cloneDeep(data.value.filter((item: any) => key === item.key)[0])
-  editableData[key].DateDo = data.value.filter((item: any) => key === item.key)[0].DateDo = it
-  console.log(editableData[key])
-  Object.assign(
-    data.value.filter((item) => key === item.key),
-    it
-  )
+function editCol(key: number, it: any, col: string) {
+  console.log(it)
+  console.log(data.value[key])
+  data.value.filter((item: any) => key === item.key)[key][col] = it
   localStorage.setItem('dannye', JSON.stringify(data.value))
-}
 
-function editArriv(key: number, it: any) {
-  editableData[key] = cloneDeep(data.value.filter((item: any) => key === item.key)[0])
-  editableData[key].DateArivInPTO = data.value.filter(
-    (item: any) => key === item.key
-  )[0].DateArivInPTO = it
-  console.log(editableData[key])
-  Object.assign(
-    data.value.filter((item) => key === item.key),
-    editableData[key]
-  )
-  localStorage.setItem('dannye', JSON.stringify(data.value))
+  data.value[key].loading = true
+  setTimeout(() => {
+    data.value[key].loading = false
+  }, 2000)
 }
 const focus = () => {
   console.log('focus')
 }
 
-function edit(key: number, it: any) {
-  console.log(it)
-  editableData[key] = cloneDeep(data.value.filter((item: any) => key === item.key)[0])
-  console.log(editableData[key])
-  Object.assign(
-    data.value.filter((item) => key === item.key),
-    it
-  )
+function edit2(key: number, it: any, col: string) {
+  console.log(key, it)
+  Object.assign((data.value[0].innerData.filter((item: any) => key === item.key)[0][col] = it))
   localStorage.setItem('dannye', JSON.stringify(data.value))
 }
-function edit2(key: number, it: any) {
-  Object.assign(data.value[0].innerData.filter((item) => key === item.key)[0], it)
-  localStorage.setItem('dannye', JSON.stringify(data.value))
-}
-function load(key: number) {
-  data.value[key].loading = true
-  setTimeout(() => {
-    data.value[key].loading = false
-  }, 2000)
+
+function importData() {
+  localStorage.setItem('dannye', JSON.stringify(dataImp.value))
 }
 </script>
